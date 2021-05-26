@@ -91,7 +91,9 @@ class HexSimAnalysis(Measurement):
                           hardware_set_func = self.setReconstructor)
         self.settings.New('find_carrier', dtype=bool, initial=True,
                           hardware_set_func = self.setReconstructor)
-        self.settings.New('selectROI', dtype=bool, initial=True) 
+        self.settings.New('selectROI', dtype=bool, initial=False) 
+        self.settings.New('roiX', dtype=int, initial=800)
+        self.settings.New('roiY', dtype=int, initial=500)
         self.settings.New('ROI_size', dtype=int, initial=512, vmin=1, vmax=4096) 
         
         
@@ -139,6 +141,8 @@ class HexSimAnalysis(Measurement):
         self.ui.calibrationButton.clicked.connect(self.calibration)
 
         self.ui.batchSimButton.clicked.connect(self.batch_recontruction)
+        
+        self.ui.cutRoiButton.clicked.connect(self.cutRoi)
         
         self.ui.resolutionEstimateButton.clicked.connect(self.estimate_resolution)
         
@@ -202,7 +206,20 @@ class HexSimAnalysis(Measurement):
                     self.settings[key] = new_value
                     self.show_text(f'Updated {key} to: {new_value} ')
             
-            
+    def cutRoi(self):        
+        x = self.settings['roiX']
+        y = self.settings['roiY']
+        ROIsize = self.settings['ROI_size']
+        xmin = x - ROIsize//2
+        ymin = y - ROIsize//2
+        self.imageRaw = self.imageRaw [:,xmin:xmin+ROIsize, ymin:ymin+ROIsize] 
+        self.imageRawShape = self.imageRaw.shape
+        self.raw2WideFieldImage()
+        self.update_display()
+        self.settings['selectROI'] = False
+        self.show_text(f'ROI set to shape: {self.imageRawShape}')
+    
+    
     def enableROIselection(self):
         """
         If the image has not the size specified in ROIsize,
@@ -223,19 +240,14 @@ class HexSimAnalysis(Measurement):
                 y = int(pos.y())
                 x = max(min(x, Lx-ROIsize//2 ),ROIsize//2 )
                 y = max(min(y, Ly-ROIsize//2 ),ROIsize//2 )
-                xmin = x - ROIsize//2
-                ymin = y - ROIsize//2
-                self.imageRaw = self.imageRaw [:,xmin:xmin+ROIsize, ymin:ymin+ROIsize] 
-                self.imageRawShape = self.imageRaw.shape
-                self.raw2WideFieldImage()
-                self.update_display()
+                self.settings['roiX']= x
+                self.settings['roiY']= y
+                self.cutRoi()
                 self.settings['selectROI'] = False
-                self.show_text(f'ROI set to shape: {self.imageRawShape}')
-            
         
         self.imvRaw.getImageItem().mouseClickEvent = click
         self.imvWF.getImageItem().mouseClickEvent = click
-        self.settings['selectROI'] = True
+        self.settings['selectROI'] = False
 
    
     def load_tif_file(self,filename):
