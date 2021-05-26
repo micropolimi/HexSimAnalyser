@@ -92,9 +92,9 @@ class HexSimAnalysis(Measurement):
         self.settings.New('find_carrier', dtype=bool, initial=True,
                           hardware_set_func = self.setReconstructor)
         self.settings.New('selectROI', dtype=bool, initial=False) 
-        self.settings.New('roiX', dtype=int, initial=800)
-        self.settings.New('roiY', dtype=int, initial=500)
-        self.settings.New('ROI_size', dtype=int, initial=512, vmin=1, vmax=4096) 
+        self.settings.New('roiX', dtype=int, initial=600)
+        self.settings.New('roiY', dtype=int, initial=1200)
+        self.settings.New('ROI_size', dtype=int, initial=512, vmin=1, vmax=2048) 
         
         
     def setup_figure(self):
@@ -132,7 +132,6 @@ class HexSimAnalysis(Measurement):
         # Toolbox
         self.ui.loadFileButton.clicked.connect(self.loadFile)
         self.ui.resetButton.clicked.connect(self.reset)
-        self.ui.calibrationResult.clicked.connect(self.showMessageWindow)
 
         self.ui.calibrationSave.clicked.connect(self.saveMeasurements) #TODO change UI names
         self.ui.calibrationLoad.clicked.connect(self.loadCalibrationResults)
@@ -156,12 +155,6 @@ class HexSimAnalysis(Measurement):
         """
         self.display_update_period = 0.5 #unused
         self.settings['progress'] = 0.0 #unused
-
-        if hasattr(self, 'showCalibrationResult'):
-            if self.showCalibrationResult:
-                self.showMessageWindow()
-                self.showCalibrationResult = False
-                self.isCalibrationSaved = False
                 
         self.imvRaw.setImage(self.imageRaw,
                                  autoRange=True, autoLevels=True, autoHistogramRange=True)
@@ -169,7 +162,7 @@ class HexSimAnalysis(Measurement):
                                  autoRange=True, autoLevels=True, autoHistogramRange=True) 
         self.imvSIM.setImage(self.imageSIM,
                                  autoRange=True, autoLevels=True, autoHistogramRange=True)
-
+        
 
     def start_sim_processor(self):
         self.isCalibrated = False
@@ -207,9 +200,13 @@ class HexSimAnalysis(Measurement):
                     self.show_text(f'Updated {key} to: {new_value} ')
             
     def cutRoi(self):        
+        Ly =self.imageRaw.shape[-1]
+        Lx =self.imageRaw.shape[-2]
         x = self.settings['roiX']
         y = self.settings['roiY']
         ROIsize = self.settings['ROI_size']
+        x = max(min(x, Lx-ROIsize//2 ),ROIsize//2 )
+        y = max(min(y, Ly-ROIsize//2 ),ROIsize//2 )
         xmin = x - ROIsize//2
         ymin = y - ROIsize//2
         self.imageRaw = self.imageRaw [:,xmin:xmin+ROIsize, ymin:ymin+ROIsize] 
@@ -230,10 +227,11 @@ class HexSimAnalysis(Measurement):
             Resizes imageRaw on click event, to the specified size 'ROI_size'
             around the clicked point.
             """
-            if self.settings['selectROI']:
-                ROIsize = self.settings['ROI_size']
-                Ly =self.imageRaw.shape[-1]
-                Lx =self.imageRaw.shape[-2]
+            ROIsize = self.settings['ROI_size']
+            Ly =self.imageRaw.shape[-1]
+            Lx =self.imageRaw.shape[-2]
+                
+            if self.settings['selectROI'] and (Lx,Ly)!=(ROIsize,ROIsize):
                 event.accept()  
                 pos = event.pos()
                 x = int(pos.x()) #pyqtgraph is transposed
@@ -243,7 +241,7 @@ class HexSimAnalysis(Measurement):
                 self.settings['roiX']= x
                 self.settings['roiY']= y
                 self.cutRoi()
-                self.settings['selectROI'] = False
+            self.settings['selectROI'] = False
         
         self.imvRaw.getImageItem().mouseClickEvent = click
         self.imvWF.getImageItem().mouseClickEvent = click
@@ -343,22 +341,25 @@ class HexSimAnalysis(Measurement):
         
       
     @add_timer
-    def calibration(self):  
-        try:
-            self.setReconstructor()
-            if self.settings['gpu']:
-                self.h.calibrate_cupy(self.imageRaw, self.isFindCarrier)       
-            else:
-                self.h.calibrate(self.imageRaw,self.isFindCarrier)          
-            self.isCalibrated = True
-            self.find_phaseshifts()
-            self.show_text('Calibration completed')
-         
-        except Exception as e:
-            self.isCalibrated = False
-            txtDisplay = f'Calibration encountered an error \n{e}'
-            self.show_text(txtDisplay)
-             
+    def calibration(self):    
+        self.setReconstructor()
+        if self.settings['gpu']:
+            self.h.calibrate_cupy(self.imageRaw, self.isFindCarrier)       
+        else:
+            self.h.calibrate(self.imageRaw,self.isFindCarrier)          
+        self.isCalibrated = True
+        self.find_phaseshifts()
+        self.show_text('Calibration completed')
+        # update wiener filter image
+        if not hasattr(self, 'wienerImv'):
+            self.wienerImv = pg.ImageView()
+            self.wienerImv.ui.roiBtn.hide()
+            self.wienerImv.ui.menuBtn.hide()
+            self.ui.wienerLayout.addWidget(self.wienerImv)
+        self.wienerImv.setImage(self.h.wienerfilter, autoRange=True, autoLevels=True, autoHistogramRange=True)
+        # show calibration table
+        self.showCalibrationTable()
+        
         
     @add_update_display
     @add_timer  
@@ -382,6 +383,7 @@ class HexSimAnalysis(Measurement):
         except Exception as e:
             txtDisplay = f'Reconstruction encountered an error \n{e}'
             self.show_text(txtDisplay)
+        
         
     @add_update_display
     @add_timer    
@@ -496,7 +498,6 @@ class HexSimAnalysis(Measurement):
                   \nSIM image resolution:\t {ciSIM.resolution:.3f} um\n"
             self.show_text(txtDisplay)
         
-        
 
     def loadCalibrationResults(self):
         try:
@@ -511,109 +512,68 @@ class HexSimAnalysis(Measurement):
             
     
     def find_phaseshifts(self):
-        self.h.phaseshift = np.zeros((4,7))
-        self.h.expected_phase = np.zeros((4,7))
+        self.phaseshift = np.zeros((4,7))
+        self.expected_phase = np.zeros((4,7))
     
         for i in range (3):
             phase, _ = self.h.find_phase(self.h.kx[i],self.h.ky[i],self.imageRaw)
-            self.h.expected_phase[i,:] = np.arange(7) * 2*(i+1) * np.pi / 7
-            self.h.phaseshift[i,:] = np.unwrap(phase - self.h.expected_phase[i,:]) + self.h.expected_phase[i,:] - phase[0]
+            self.expected_phase[i,:] = np.arange(7) * 2*(i+1) * np.pi / 7
+            self.phaseshift[i,:] = np.unwrap(phase - self.expected_phase[i,:]) + self.expected_phase[i,:] - phase[0]
     
-        self.h.phaseshift[3] = self.h.phaseshift[2]-self.h.phaseshift[1]-self.h.phaseshift[0]
+        self.phaseshift[3] = self.phaseshift[2]-self.phaseshift[1]-self.phaseshift[0]
+        if not hasattr(self, 'phasesPlot'):
+            self.phasesPlot = pg.PlotWidget()
+            self.ui.phasesLayout.addWidget(self.phasesPlot)
+        self.phasesPlot.clear()
+        for idx in range(len(self.phaseshift)):
+            self.phasesPlot.plot(self.phaseshift[idx], symbol = '+')
+            pen = pg.mkPen(color='r')
+            self.phasesPlot.plot(self.expected_phase[idx], pen = pen)
+
 
     def show_text(self, text):
         self.ui.MessageBox.insertPlainText(text+'\n')
         self.ui.MessageBox.ensureCursorVisible()
         print(text)    
         
-    def showMessageWindow(self):
-        messageWindow = MessageWindow(self.h, self.kx_input, self.ky_input)
-        messageWindow.show()
 
-
-class MessageWindow(QWidget):
-
-    """
-    This window display the Winier filter and other debug data
-    """
-
-    def __init__(self, h, kx, ky):
-        super().__init__()
-        self.ui = uic.loadUi(sibling_path(__file__, "calibration_results.ui"),self)
-        self.h = h
-        self.kx = kx
-        self.ky = ky
-        self.setWindowTitle('Calibration results')
-        self.showCurrentTable()
-        self.show_images()
+    def showCalibrationTable(self):
+        def table_item(element):
+            return QTableWidgetItem(str(element).lstrip('[').rstrip(']'))
+            
+        table = self.ui.currentTable
+        table.setColumnCount(4)
+        table.setRowCount(6)
         
-    def show_images(self):
-        if all(hasattr(self.h, attr) for attr in ["wienerfilter",
-                                                  "phaseshift",
-                                                  "expected_phase"]):
-            widgets =[pg.ImageView(),
-                      pg.PlotWidget(),
-                      pg.ImageView()]
-            layouts = ['wienerLayout',
-                       'phaseLayout',
-                       'otfLayout']
-            data_to_show = [self.h.wienerfilter,
-                            [self.h.phaseshift, self.h.expected_phase],
-                            self.h.wienerfilter]
-            for widget, layout_name, data in zip(widgets,layouts,data_to_show):
-                layout = getattr(self.ui, layout_name)
-                layout.addWidget(widget)
-                if isinstance(widget, pg.ImageView):
-                        self.show_image_data(widget,data)
-                if isinstance(widget, pg.PlotWidget):
-                        self.show_plot_data(widget,data)
-    
+        table.setItem(0, 0, table_item('[kx_in]'))
+        table.setItem(0, 1, table_item(self.kx_input[0]))
+        table.setItem(0, 2, table_item(self.kx_input[1]))
+        table.setItem(0, 3, table_item(self.kx_input[2]))
+        
+        table.setItem(1, 0, table_item('[ky_in]'))              
+        table.setItem(1, 1, table_item(self.ky_input[0]))
+        table.setItem(1, 2, table_item(self.ky_input[1]))
+        table.setItem(1, 3, table_item(self.ky_input[2]))
 
-    def showCurrentTable(self):
-
-        self.ui.currentTable.setItem(0, 0, QTableWidgetItem(str(self.kx[0]).lstrip('[').rstrip(']')))
-        self.ui.currentTable.setItem(0, 1, QTableWidgetItem(str(self.kx[1]).lstrip('[').rstrip(']')))
-        self.ui.currentTable.setItem(0, 2, QTableWidgetItem(str(self.kx[2]).lstrip('[').rstrip(']')))
+        table.setItem(2, 0, table_item('[kx]'))             
+        table.setItem(2, 1, table_item(self.h.kx[0]))
+        table.setItem(2, 2, table_item(self.h.kx[1]))
+        table.setItem(2, 3, table_item(self.h.kx[2]))
         #
-        self.ui.currentTable.setItem(1, 0, QTableWidgetItem(str(self.ky[0]).lstrip('[').rstrip(']')))
-        self.ui.currentTable.setItem(1, 1, QTableWidgetItem(str(self.ky[1]).lstrip('[').rstrip(']')))
-        self.ui.currentTable.setItem(1, 2, QTableWidgetItem(str(self.ky[2]).lstrip('[').rstrip(']')))
-
-        self.ui.currentTable.setItem(2, 0, QTableWidgetItem(str(self.h.kx[0]).lstrip('[').rstrip(']')))
-        self.ui.currentTable.setItem(2, 1, QTableWidgetItem(str(self.h.kx[1]).lstrip('[').rstrip(']')))
-        self.ui.currentTable.setItem(2, 2, QTableWidgetItem(str(self.h.kx[2]).lstrip('[').rstrip(']')))
+        table.setItem(3, 0, table_item('[ky]'))              
+        table.setItem(3, 1, table_item(self.h.ky[0]))
+        table.setItem(3, 2, table_item(self.h.ky[1]))
+        table.setItem(3, 3, table_item(self.h.ky[2]))
         #
-        self.ui.currentTable.setItem(3, 0, QTableWidgetItem(str(self.h.ky[0]).lstrip('[').rstrip(']')))
-        self.ui.currentTable.setItem(3, 1, QTableWidgetItem(str(self.h.ky[1]).lstrip('[').rstrip(']')))
-        self.ui.currentTable.setItem(3, 2, QTableWidgetItem(str(self.h.ky[2]).lstrip('[').rstrip(']')))
+        table.setItem(4, 0, table_item('[phase]'))  
+        table.setItem(4, 1, table_item(self.h.p[0]))
+        table.setItem(4, 2, table_item(self.h.p[1]))
+        table.setItem(4, 3, table_item(self.h.p[2]))
         #
-        self.ui.currentTable.setItem(4, 0, QTableWidgetItem(str(self.h.p[0]).lstrip('[').rstrip(']')))
-        self.ui.currentTable.setItem(4, 1, QTableWidgetItem(str(self.h.p[1]).lstrip('[').rstrip(']')))
-        self.ui.currentTable.setItem(4, 2, QTableWidgetItem(str(self.h.p[2]).lstrip('[').rstrip(']')))
-        #
-        self.ui.currentTable.setItem(5, 0, QTableWidgetItem(str(self.h.ampl[0]).lstrip('[').rstrip(']')))
-        self.ui.currentTable.setItem(5, 1, QTableWidgetItem(str(self.h.ampl[1]).lstrip('[').rstrip(']')))
-        self.ui.currentTable.setItem(5, 2, QTableWidgetItem(str(self.h.ampl[2]).lstrip('[').rstrip(']')))
-
-        # Table will fit the screen horizontally
-        self.currentTable.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-
-
-    def show_image_data(self, widget, image_to_show):
-        widget.aspectRatioMode = Qt.KeepAspectRatio
-        widget.ui.roiBtn.hide()
-        widget.ui.menuBtn.hide()
-        widget.ui.histogram.hide()
-        widget.setImage(image_to_show, autoRange=True, autoLevels=True)
-        widget.adjustSize()
-    
-    
-    def show_plot_data(self, widget, plot_to_show):
-        widget.aspectRatioMode = Qt.KeepAspectRatio
-        for idx in range(len(plot_to_show[0])):
-            widget.plot(plot_to_show[0][idx], symbol = '+', color ='r')
-            widget.plot(plot_to_show[1][idx])
-        widget.adjustSize()
+        table.setItem(5, 0, table_item('[amplitude]'))  
+        table.setItem(5, 1, table_item(self.h.ampl[0]))
+        table.setItem(5, 2, table_item(self.h.ampl[1]))
+        table.setItem(5, 3, table_item(self.h.ampl[2]))
 
 
 class NumpyEncoder(json.JSONEncoder):

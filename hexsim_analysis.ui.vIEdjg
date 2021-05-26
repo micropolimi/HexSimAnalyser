@@ -42,7 +42,7 @@
     <item row="0" column="0" colspan="2">
      <layout class="QHBoxLayout" name="horizontalLayout">
       <item>
-       <widget class="QTabWidget" name="originalTab">
+       <widget class="QTabWidget" name="imgStreamTabW">
         <property name="font">
          <font>
           <pointsize>8</pointsize>
@@ -61,7 +61,7 @@
           </item>
          </layout>
         </widget>
-        <widget class="QWidget" name="wfTab">
+        <widget class="QWidget" name="tab">
          <attribute name="title">
           <string>Wide field</string>
          </attribute>
@@ -74,15 +74,9 @@
        </widget>
       </item>
       <item>
-       <widget class="QTabWidget" name="processedTab">
+       <widget class="QTabWidget" name="imgs">
         <property name="enabled">
          <bool>true</bool>
-        </property>
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
         </property>
         <property name="font">
          <font>
@@ -90,7 +84,7 @@
          </font>
         </property>
         <property name="currentIndex">
-         <number>0</number>
+         <number>3</number>
         </property>
         <widget class="QWidget" name="SimTab">
          <attribute name="title">
@@ -106,8 +100,8 @@
          <attribute name="title">
           <string>Wiener</string>
          </attribute>
-         <layout class="QGridLayout" name="gridLayout_10">
-          <item row="0" column="0">
+         <layout class="QHBoxLayout" name="horizontalLayout_2">
+          <item>
            <layout class="QGridLayout" name="wienerLayout"/>
           </item>
          </layout>
@@ -116,8 +110,8 @@
          <attribute name="title">
           <string>Phases</string>
          </attribute>
-         <layout class="QGridLayout" name="gridLayout_6">
-          <item row="0" column="0">
+         <layout class="QHBoxLayout" name="horizontalLayout_3">
+          <item>
            <layout class="QGridLayout" name="phasesLayout"/>
           </item>
          </layout>
@@ -126,21 +120,11 @@
          <attribute name="title">
           <string>Calibration</string>
          </attribute>
-         <layout class="QGridLayout" name="gridLayout_7">
-          <item row="0" column="0">
+         <layout class="QHBoxLayout" name="horizontalLayout_4">
+          <item>
            <layout class="QGridLayout" name="calibrationLayout">
             <item row="0" column="0">
-             <widget class="QTableWidget" name="currentTable">
-              <property name="showGrid">
-               <bool>true</bool>
-              </property>
-              <attribute name="horizontalHeaderVisible">
-               <bool>false</bool>
-              </attribute>
-              <attribute name="verticalHeaderVisible">
-               <bool>false</bool>
-              </attribute>
-             </widget>
+             <widget class="QTableWidget" name="tableWidget"/>
             </item>
            </layout>
           </item>
@@ -324,6 +308,31 @@
           </property>
           <property name="text">
            <string>Save </string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QPushButton" name="calibrationResult">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>70</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>Calibration Result</string>
           </property>
          </widget>
         </item>
