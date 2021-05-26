@@ -198,7 +198,10 @@ class HexSimAnalysis(Measurement):
             for key in ['magnification','n','NA','pixelsize','wavelength']:
                 val = get_h5_attr(filename, key)
                 if len(val)>0:
-                    self.settings[key] = val[0]
+                    new_value = val[0]
+                    self.settings[key] = new_value
+                    self.show_text(f'Updated {key} to: {new_value} ')
+            
             
     def enableROIselection(self):
         """
@@ -228,9 +231,10 @@ class HexSimAnalysis(Measurement):
                 self.update_display()
                 self.settings['selectROI'] = False
                 self.show_text(f'ROI set to shape: {self.imageRawShape}')
-            return (x,y)
+            
         
         self.imvRaw.getImageItem().mouseClickEvent = click
+        self.imvWF.getImageItem().mouseClickEvent = click
         self.settings['selectROI'] = True
 
    
@@ -283,7 +287,6 @@ class HexSimAnalysis(Measurement):
     
     
     @add_update_display
-    @add_timer
     def loadFile(self):
         
             try:
@@ -507,7 +510,8 @@ class HexSimAnalysis(Measurement):
         self.h.phaseshift[3] = self.h.phaseshift[2]-self.h.phaseshift[1]-self.h.phaseshift[0]
 
     def show_text(self, text):
-        self.ui.MessageBox.setPlainText(text)
+        self.ui.MessageBox.insertPlainText(text+'\n')
+        self.ui.MessageBox.ensureCursorVisible()
         print(text)    
         
     def showMessageWindow(self):
