@@ -1,0 +1,9 @@
+2021-05-22T12:58:22|CRITICAL|root|Unhandled exception:Traceback (most recent call last):
+  File "C:\Users\andrea\OneDrive - Politecnico di Milano\Documenti\PythonProjects\BassiScopeFoundryMicroscopes\Microscopes\HexSIM_Analyser\HexSimAnalyser_measurement.py", line 436, in batchProcessor
+    self.h.calibrate(self.imageRaw[int(nStack // 2):int(nStack // 2 + 7), :, :], self.isFindCarrier)
+  File "C:\Users\andrea\OneDrive - Politecnico di Milano\Documenti\PythonProjects\BassiScopeFoundryMicroscopes\Microscopes\HexSimProcessor\SIM_processing\hexSimProcessor.py", line 90, in calibrate
+    self._calibrate(img, findCarrier, useCupy = False)
+  File "C:\Users\andrea\OneDrive - Politecnico di Milano\Documenti\PythonProjects\BassiScopeFoundryMicroscopes\Microscopes\HexSimProcessor\SIM_processing\hexSimProcessor.py", line 97, in _calibrate
+    assert len(img) > 6
+AssertionError
+

@@ -1,0 +1,17 @@
+2021-05-25T17:59:55|CRITICAL|root|Unhandled exception:Traceback (most recent call last):
+  File "C:\LabPrograms\Python\ScopeFoundryProjects\PROCHIP microscope\HexSIM_Analyser\HexSimAnalyser_measurement.py", line 44, in inner
+    cls.update_display()
+  File "C:\LabPrograms\Python\ScopeFoundryProjects\PROCHIP microscope\HexSIM_Analyser\HexSimAnalyser_measurement.py", line 166, in update_display
+    self.imvSIM.setImage(self.imageSIM,
+  File "C:\Users\LAB\Anaconda3\envs\scopefoundry\lib\site-packages\pyqtgraph\imageview\ImageView.py", line 322, in setImage
+    self.updateImage(autoHistogramRange=autoHistogramRange)
+  File "C:\Users\LAB\Anaconda3\envs\scopefoundry\lib\site-packages\pyqtgraph\imageview\ImageView.py", line 717, in updateImage
+    self.ui.histogram.setHistogramRange(self.levelMin, self.levelMax)
+  File "C:\Users\LAB\Anaconda3\envs\scopefoundry\lib\site-packages\pyqtgraph\graphicsItems\HistogramLUTItem.py", line 155, in setHistogramRange
+    self.vb.setYRange(mn, mx, padding)
+  File "C:\Users\LAB\Anaconda3\envs\scopefoundry\lib\site-packages\pyqtgraph\graphicsItems\ViewBox\ViewBox.py", line 649, in setYRange
+    self.setRange(yRange=[min, max], update=update, padding=padding)
+  File "C:\Users\LAB\Anaconda3\envs\scopefoundry\lib\site-packages\pyqtgraph\graphicsItems\ViewBox\ViewBox.py", line 571, in setRange
+    raise Exception("Cannot set range [%s, %s]" % (str(mn), str(mx)))
+Exception: Cannot set range [nan, nan]
+

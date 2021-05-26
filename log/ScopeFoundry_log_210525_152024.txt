@@ -1,0 +1,9 @@
+2021-05-25T15:20:31|CRITICAL|root|Unhandled exception:Traceback (most recent call last):
+  File "C:\LabPrograms\Python\ScopeFoundryProjects\PROCHIP microscope\HexSIM_Analyser\HexSimAnalyser_measurement.py", line 499, in showMessageWindow
+    self.messageWindow = MessageWindow(self.h, self.kx_input, self.ky_input)
+  File "C:\LabPrograms\Python\ScopeFoundryProjects\PROCHIP microscope\HexSIM_Analyser\HexSimAnalyser_measurement.py", line 517, in __init__
+    self.show_images()
+  File "C:\LabPrograms\Python\ScopeFoundryProjects\PROCHIP microscope\HexSIM_Analyser\HexSimAnalyser_measurement.py", line 527, in show_images
+    [self.h.phaseshift, self.h.expected_phase],
+AttributeError: 'HexSimProcessor' object has no attribute 'phaseshift'
+

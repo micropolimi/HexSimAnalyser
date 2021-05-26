@@ -1,0 +1,11 @@
+2021-05-25T16:02:13|CRITICAL|root|Unhandled exception:Traceback (most recent call last):
+  File "C:\LabPrograms\Python\ScopeFoundryProjects\PROCHIP microscope\HexSIM_Analyser\HexSimAnalyser_measurement.py", line 33, in inner
+    result = function(cls)
+  File "C:\LabPrograms\Python\ScopeFoundryProjects\PROCHIP microscope\HexSIM_Analyser\HexSimAnalyser_measurement.py", line 339, in calibration
+    self.h.calibrate(self.imageRaw,self.isFindCarrier)
+  File "C:\LabPrograms\Python\ScopeFoundryProjects\PROCHIP microscope\HexSimProcessor\SIM_processing\hexSimProcessor.py", line 90, in calibrate
+    self._calibrate(img, findCarrier, useCupy = False)
+  File "C:\LabPrograms\Python\ScopeFoundryProjects\PROCHIP microscope\HexSimProcessor\SIM_processing\hexSimProcessor.py", line 97, in _calibrate
+    assert len(img) > 6
+AssertionError
+
