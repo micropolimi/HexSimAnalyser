@@ -9,8 +9,9 @@ import pyqtgraph as pg
 import tifffile as tif
 from numpy.fft import fft2, fftshift
 
-from PyQt5.QtWidgets import QFileDialog, QMessageBox, QWidget, QTableWidgetItem, QHeaderView
-    
+# from PyQt5.QtWidgets import QFileDialog, QTableWidgetItem
+from qtpy.QtWidgets import QFileDialog, QTableWidgetItem   
+
 from ScopeFoundry import Measurement
 from ScopeFoundry.helper_funcs import sibling_path, load_qt_ui_file
 
