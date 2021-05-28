@@ -7,9 +7,8 @@ from pathlib import Path
 import numpy as np
 import pyqtgraph as pg
 import tifffile as tif
+from numpy.fft import fft2, fftshift
 
-from PyQt5 import uic
-from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QFileDialog, QMessageBox, QWidget, QTableWidgetItem, QHeaderView
     
 from ScopeFoundry import Measurement
@@ -99,7 +98,7 @@ class HexSimAnalysis(Measurement):
         
     def setup_figure(self):
         
-        self.display_update_period = 0.5 
+        #self.display_update_period = 0.5 
         
         self.imvRaw = pg.ImageView()
         self.imvRaw.ui.roiBtn.hide()
@@ -108,7 +107,15 @@ class HexSimAnalysis(Measurement):
         self.imvSIM = pg.ImageView()
         self.imvSIM.ui.roiBtn.hide()
         self.imvSIM.ui.menuBtn.hide()
-
+        
+        self.imvFft = pg.ImageView()
+        self.imvFft.ui.roiBtn.hide()
+        self.imvFft.ui.menuBtn.hide()
+        
+        self.imvSimFft = pg.ImageView()
+        self.imvSimFft.ui.roiBtn.hide()
+        self.imvSimFft.ui.menuBtn.hide()
+        
         self.imvWF = pg.ImageView()
         self.imvWF.ui.roiBtn.hide()
         self.imvWF.ui.menuBtn.hide()
@@ -116,18 +123,8 @@ class HexSimAnalysis(Measurement):
         self.ui.rawImageLayout.addWidget(self.imvRaw)
         self.ui.simImageLayout.addWidget(self.imvSIM)
         self.ui.wfImageLayout.addWidget(self.imvWF)
-
-        # Image initialization
-        self.imageRawShape = (1, self.settings['ROI_size'], self.settings['ROI_size']) # TODO update to 4D case
-        self.imageSIMShape = [self.imageRawShape[-2]*2, self.imageRawShape[-1]*2]
-        self.imageWFShape = [self.imageRawShape[-2],self.imageRawShape[-1]]
-        self.imageRaw = np.zeros(self.imageRawShape, dtype=np.uint16) 
-        self.imageSIM = np.zeros(self.imageSIMShape, dtype=np.uint16) 
-        self.imageWF = np.zeros(self.imageWFShape, dtype=np.uint16)
-
-        self.imvRaw.setImage(self.imageRaw, autoRange=False, autoLevels=True, autoHistogramRange=True)
-        self.imvWF.setImage(self.imageWF, autoRange=False, autoLevels=True, autoHistogramRange=True)
-        self.imvSIM.setImage(self.imageSIM, autoRange=False, autoLevels=True, autoHistogramRange=True)
+        self.ui.fftLayout.addWidget(self.imvFft)
+        self.ui.simFftLayout.addWidget(self.imvSimFft)
 
         # Toolbox
         self.ui.loadFileButton.clicked.connect(self.loadFile)
@@ -147,23 +144,31 @@ class HexSimAnalysis(Measurement):
         
         self.start_sim_processor()
 
-
-    def update_display(self):
-        """
-        This function runs repeatedly and automatically during the measurement run,
-        its update frequency is defined by self.display_update_period.
-        """
-        self.display_update_period = 0.5 #unused
-        self.settings['progress'] = 0.0 #unused
-                
-        self.imvRaw.setImage(self.imageRaw,
-                                 autoRange=True, autoLevels=True, autoHistogramRange=True)
-        self.imvWF.setImage(self.imageWF,
-                                 autoRange=True, autoLevels=True, autoHistogramRange=True) 
-        self.imvSIM.setImage(self.imageSIM,
-                                 autoRange=True, autoLevels=True, autoHistogramRange=True)
         
+    @property
+    def imageRaw(self):
+        return self._imageRaw
+            
+    @imageRaw.setter
+    def imageRaw(self, img_raw): 
+        self._imageRaw = img_raw 
+        self.imvRaw.setImage(img_raw, autoRange=True, autoLevels=True, autoHistogramRange=True)
+        self.imageWF = imageWF = self.calculate_WF_image(img_raw) 
+        self.imvWF.setImage(imageWF, autoRange=True, autoLevels=True, autoHistogramRange=True) 
+        spectrum = self.calculate_spectrum(img_raw[0,:,:]) # calculates the power spectrum of imageRaw for the first phase
+        self.imvFft.setImage(spectrum, autoRange=True, autoLevels=True, autoHistogramRange=True) 
 
+    @property
+    def imageSIM(self):
+        return self._imageSIM
+            
+    @imageSIM.setter
+    def imageSIM(self, img_sim): 
+        self._imageSIM = img_sim 
+        self.imvSIM.setImage(img_sim, autoRange=True, autoLevels=True, autoHistogramRange=True)
+        spectrum = self.calculate_spectrum(img_sim)
+        self.imvSimFft.setImage(spectrum, autoRange=True, autoLevels=True, autoHistogramRange=True) 
+        
     def start_sim_processor(self):
         self.isCalibrated = False
         self.kx_input = np.zeros((3, 1), dtype=np.single)
@@ -174,21 +179,20 @@ class HexSimAnalysis(Measurement):
         if not hasattr(self, 'h'):
             self.h = HexSimProcessor()  # create reconstruction object
             self.h.opencv = False
-            self.setReconstructor()
+            self.setReconstructor()        
             
     def stop_sim_processor(self):
         if hasattr(self, 'h'):
             delattr(self, 'h')
      
-        
+    def update_display(self):
+        pass
+     
     def run(self):
         pass
-   
-    
+      
     def load_h5_file(self,filename):
             self.imageRaw = get_h5_dataset(filename) #TODO read h5 info
-            self.imageRawShape = self.imageRaw.shape
-            self.raw2WideFieldImage()
             self.enableROIselection()
             
             #load some settings, if present in the h5 file
@@ -209,14 +213,11 @@ class HexSimAnalysis(Measurement):
         y = max(min(y, Ly-ROIsize//2 ),ROIsize//2 )
         xmin = x - ROIsize//2
         ymin = y - ROIsize//2
-        self.imageRaw = self.imageRaw [:,xmin:xmin+ROIsize, ymin:ymin+ROIsize] 
-        self.imageRawShape = self.imageRaw.shape
-        self.raw2WideFieldImage()
-        self.update_display()
+        self.imageRaw = self.imageRaw [:,xmin:xmin+ROIsize, ymin:ymin+ROIsize]
+        
         self.settings['selectROI'] = False
-        self.show_text(f'ROI set to shape: {self.imageRawShape}')
-    
-    
+        self.show_text(f'ROI set to shape: {self.imageRaw.shape}')
+      
     def enableROIselection(self):
         """
         If the image has not the size specified in ROIsize,
@@ -247,11 +248,8 @@ class HexSimAnalysis(Measurement):
         self.imvWF.getImageItem().mouseClickEvent = click
         self.settings['selectROI'] = False
 
-   
     def load_tif_file(self,filename):
         self.imageRaw = np.single(tif.imread(filename))
-        self.imageRawShape = self.imageRaw.shape
-        self.raw2WideFieldImage()
         try:
             # get file name of txt file
             for file in os.listdir(self.filepath):
@@ -294,52 +292,42 @@ class HexSimAnalysis(Measurement):
 
         except:
             self.show_text("No information about this measurement.")
-    
-    
-    @add_update_display
+       
     def loadFile(self):
+           
+        filename, _ = QFileDialog.getOpenFileName(directory = self.app.settings['save_dir'])
         
-            try:
-                filename, _ = QFileDialog.getOpenFileName(directory = self.app.settings['save_dir'])
-                
-                if filename.endswith('.tif') or filename.endswith('.tiff'):
-                    self.load_tif_file(filename)
-                elif filename.endswith('.h5') or filename.endswith('.hdf5'):
-                    self.load_h5_file(filename)
-                else:
-                    raise OSError('Invalid file type')
-    
-                self.filetitle = Path(filename).stem
-                self.filepath = os.path.dirname(filename)
-                self.isFileLoad = True
-            except:
-                self.isFileLoad = False
-    
-            if self.isFileLoad:
-                self.isCalibrated = False
-                self.setReconstructor()
-                self.h._allocate_arrays()
-            else:
-                txtDisplay = "File is not loaded."
-                self.show_text(txtDisplay)
-                
+        if filename.endswith('.tif') or filename.endswith('.tiff'):
+            self.load_tif_file(filename)
+        elif filename.endswith('.h5') or filename.endswith('.hdf5'):
+            self.load_h5_file(filename)
+        else:
+            raise OSError('Invalid file type')
 
-    def raw2WideFieldImage(self):
-        self.imageWF = np.mean(self.imageRaw, axis=0)
-        self.imageWFShape = self.imageWF.shape
-    
+        self.filetitle = Path(filename).stem
+        self.filepath = os.path.dirname(filename)
+        self.setReconstructor()
+        self.h._allocate_arrays()
+                
+    def calculate_WF_image(self, img):
+        imageWF = np.mean(img, axis=0)
+        return imageWF
         
-    @add_update_display        
+    def calculate_spectrum(self, img):
+        """
+        Calculates power spectrum of the image
+        """
+        epsilon = 1e-6
+        ps = np.log((np.abs(fftshift(fft2(img))))**2+epsilon) 
+        return ps 
+        
     def reset(self):
-        self.isFileLoad = False
         self.isCalibrated = False
         self.stop_sim_processor()
         self.start_sim_processor()
-        self.imageSIM = np.zeros(self.imageSIMShape, dtype=np.uint16) 
-        self.imageRaw = np.zeros(self.imageRawShape, dtype=np.uint16)
-        self.imageWF = np.zeros(self.imageWFShape, dtype=np.uint16)
-        
-      
+        self.imageSIM = np.zeros(self.imageSIM.shape, dtype=np.uint16) 
+        self.imageRaw = np.zeros(self.imageRaw.shape, dtype=np.uint16)
+            
     @add_timer
     def calibration(self):    
         self.setReconstructor()
@@ -359,33 +347,23 @@ class HexSimAnalysis(Measurement):
         self.wienerImv.setImage(self.h.wienerfilter, autoRange=True, autoLevels=True, autoHistogramRange=True)
         # show calibration table
         self.showCalibrationTable()
-        
-        
-    @add_update_display
+             
     @add_timer  
     def standard_reconstruction(self):
-        try:
-            self.setReconstructor()
+       
+        self.setReconstructor()
+        if self.isCalibrated:
+            
+            if self.settings['gpu']:
+                self.imageSIM = self.h.reconstruct_cupy(self.imageRaw)
+
+            elif not self.settings['gpu']:
+                self.imageSIM = self.h.reconstruct_rfftw(self.imageRaw)
+        else:
+            self.calibration()
             if self.isCalibrated:
-                
-                if self.settings['gpu']:
-                    self.imageSIM = self.h.reconstruct_cupy(self.imageRaw)
-    
-                elif not self.settings['gpu']:
-                    self.imageSIM = self.h.reconstruct_rfftw(self.imageRaw)
-            else:
-                self.calibration()
-                if self.isCalibrated:
-                    self.standard_reconstruction()
-                    
-            self.imageSIMShape = self.imageSIM.shape
-        
-        except Exception as e:
-            txtDisplay = f'Reconstruction encountered an error \n{e}'
-            self.show_text(txtDisplay)
-        
-        
-    @add_update_display
+                self.standard_reconstruction()
+          
     @add_timer    
     def batch_recontruction(self): # TODO fix this reconstruction with  multiple batches (multiple planes)
         self.setReconstructor()
@@ -424,8 +402,7 @@ class HexSimAnalysis(Measurement):
                     self.imageSIM = self.h.batchreconstructcompact(self.imageRaw)
                 elif not self.settings['compact']:
                     self.imageSIM = self.h.batchreconstruct(self.imageRaw)
-        self.imageSIMShape = self.imageSIM.shape
-
+        
     def setReconstructor(self,*args):
         self.isFindCarrier = self.settings['find_carrier']
         self.h.debug = self.settings['debug']
@@ -485,8 +462,6 @@ class HexSimAnalysis(Measurement):
         f.write(json.dumps(savedictionary, cls=NumpyEncoder,indent=2))
         self.isCalibrationSaved = True
 
-
-    @add_update_display
     @add_timer   
     def estimate_resolution(self): #TODO : consider to add QT timers
             pixelsizeWF = self.h.pixelsize / self.h.magnification
@@ -498,7 +473,6 @@ class HexSimAnalysis(Measurement):
                   \nSIM image resolution:\t {ciSIM.resolution:.3f} um\n"
             self.show_text(txtDisplay)
         
-
     def loadCalibrationResults(self):
         try:
             filename, _ = QFileDialog.getOpenFileName(caption="Open file", directory=self.app.settings['save_dir'], filter="Text files (*.txt)")
@@ -510,7 +484,6 @@ class HexSimAnalysis(Measurement):
         except:
             self.show_text("Calibration results are not loaded.")
             
-    
     def find_phaseshifts(self):
         self.phaseshift = np.zeros((4,7))
         self.expected_phase = np.zeros((4,7))
@@ -530,13 +503,11 @@ class HexSimAnalysis(Measurement):
             pen = pg.mkPen(color='r')
             self.phasesPlot.plot(self.expected_phase[idx], pen = pen)
 
-
     def show_text(self, text):
         self.ui.MessageBox.insertPlainText(text+'\n')
         self.ui.MessageBox.ensureCursorVisible()
         print(text)    
         
-
     def showCalibrationTable(self):
         def table_item(element):
             return QTableWidgetItem(str(element).lstrip('[').rstrip(']'))
@@ -575,14 +546,13 @@ class HexSimAnalysis(Measurement):
         table.setItem(5, 2, table_item(self.h.ampl[1]))
         table.setItem(5, 3, table_item(self.h.ampl[2]))
 
-
 class NumpyEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, np.ndarray):
             return obj.tolist()
         return json.JSONEncoder.default(self, obj)
 
-    
+  
 if __name__ == "__main__" :
     from ScopeFoundry import BaseMicroscopeApp
     import sys
