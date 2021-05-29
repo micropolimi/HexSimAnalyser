@@ -16,8 +16,8 @@ from ScopeFoundry import Measurement
 from ScopeFoundry.helper_funcs import sibling_path, load_qt_ui_file
 
 from HexSimProcessor.SIM_processing.hexSimProcessor import HexSimProcessor
-from HexSIM_Analyser.image_decorr import ImageDecorr
-from HexSIM_Analyser.get_h5_data import get_h5_dataset, get_h5_attr
+from HexSimAnalyser.image_decorr import ImageDecorr
+from HexSimAnalyser.get_h5_data import get_h5_dataset, get_h5_attr
 
 
 def add_timer(function):
