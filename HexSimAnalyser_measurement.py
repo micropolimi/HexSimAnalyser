@@ -561,6 +561,7 @@ class HexSimAnalysis(Measurement):
             }
         f = open(txtname, 'w+')
         f.write(json.dumps(savedictionary, cls=NumpyEncoder,indent=2))
+        f.close()
         self.isCalibrationSaved = True
 
     @add_timer   
