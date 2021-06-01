@@ -49,7 +49,7 @@
          </font>
         </property>
         <property name="currentIndex">
-         <number>0</number>
+         <number>1</number>
         </property>
         <widget class="QWidget" name="imgStreamTab">
          <attribute name="title">
@@ -197,23 +197,10 @@
         </rect>
        </property>
       </widget>
-      <widget class="QLabel" name="label">
-       <property name="geometry">
-        <rect>
-         <x>210</x>
-         <y>30</y>
-         <width>47</width>
-         <height>13</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Messages</string>
-       </property>
-      </widget>
       <widget class="QWidget" name="layoutWidget">
        <property name="geometry">
         <rect>
-         <x>890</x>
+         <x>920</x>
          <y>50</y>
          <width>278</width>
          <height>54</height>
@@ -277,27 +264,46 @@
       <widget class="QWidget" name="layoutWidget">
        <property name="geometry">
         <rect>
-         <x>570</x>
+         <x>550</x>
          <y>50</y>
-         <width>278</width>
+         <width>351</width>
          <height>54</height>
         </rect>
        </property>
        <layout class="QGridLayout" name="gridLayout_3">
-        <item row="0" column="0">
-         <widget class="QPushButton" name="loadFileButton">
-          <property name="minimumSize">
-           <size>
-            <width>50</width>
-            <height>20</height>
-           </size>
-          </property>
+        <item row="1" column="2">
+         <widget class="QPushButton" name="cutRoiButton">
           <property name="text">
-           <string>Load file</string>
+           <string>CutROI</string>
           </property>
          </widget>
         </item>
-        <item row="0" column="1">
+        <item row="1" column="4">
+         <widget class="QPushButton" name="calibrationLoad">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>70</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>Load configuration</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="3">
          <widget class="QPushButton" name="resetButton">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
@@ -323,6 +329,19 @@
          </widget>
         </item>
         <item row="0" column="2">
+         <widget class="QPushButton" name="loadFileButton">
+          <property name="minimumSize">
+           <size>
+            <width>50</width>
+            <height>20</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>Load file</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="4">
          <widget class="QPushButton" name="calibrationSave">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
@@ -347,39 +366,48 @@
           </property>
          </widget>
         </item>
-        <item row="1" column="2">
-         <widget class="QPushButton" name="calibrationLoad">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
+        <item row="0" column="1">
+         <widget class="QDoubleSpinBox" name="datasetSpinBox">
+          <property name="decimals">
+           <number>0</number>
           </property>
-          <property name="minimumSize">
-           <size>
-            <width>70</width>
-            <height>23</height>
-           </size>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QDoubleSpinBox" name="frameSpinBox">
+          <property name="decimals">
+           <number>0</number>
           </property>
-          <property name="maximumSize">
-           <size>
-            <width>16777215</width>
-            <height>23</height>
-           </size>
-          </property>
+         </widget>
+        </item>
+        <item row="0" column="0">
+         <widget class="QLabel" name="datasetlabel">
           <property name="text">
-           <string>Load configuration</string>
+           <string>Dataset</string>
           </property>
          </widget>
         </item>
         <item row="1" column="0">
-         <widget class="QPushButton" name="cutRoiButton">
+         <widget class="QLabel" name="framelabel">
           <property name="text">
-           <string>CutROI</string>
+           <string>Frame</string>
           </property>
          </widget>
         </item>
        </layout>
+      </widget>
+      <widget class="QLabel" name="label_3">
+       <property name="geometry">
+        <rect>
+         <x>190</x>
+         <y>20</y>
+         <width>47</width>
+         <height>23</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Messages</string>
+       </property>
       </widget>
      </widget>
     </item>

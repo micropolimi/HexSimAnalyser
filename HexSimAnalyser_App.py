@@ -20,7 +20,6 @@ class HexSimAnalysisApp(BaseMicroscopeApp):
         from HexSimAnalyser_measurement import HexSimAnalysis
         self.add_measurement(HexSimAnalysis)
         
-        
         # show ui
         self.ui.show()
         self.ui.activateWindow()
@@ -30,6 +29,6 @@ if __name__ == '__main__':
     import sys
     
     app = HexSimAnalysisApp(sys.argv)
-    app.settings_load_ini(".\\Settings\\HexSIM_Analysis.ini")
+    #app.settings_load_ini(".\\Settings\\HexSIM_Analysis.ini")
     
     sys.exit(app.exec_())
