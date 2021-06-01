@@ -78,7 +78,7 @@ class HexSimAnalysis(Measurement):
                           hardware_set_func = self.setReconstructor)
         self.settings.New('w', dtype=float, initial=5.00, spinbox_decimals=2, description='wiener parameter',
                           hardware_set_func = self.setReconstructor)
-        self.settings.New('eta', dtype=float, initial=0.30, spinbox_decimals=2, 
+        self.settings.New('eta', dtype=float, initial=0.15, spinbox_decimals=2, 
                           description='must be smaller than the sources radius normalized on the pupil size',
                           hardware_set_func = self.setReconstructor)
         self.settings.New('find_carrier', dtype=bool, initial=True,                         
