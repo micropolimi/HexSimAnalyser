@@ -1,0 +1,31 @@
+2021-06-17T18:55:08|CRITICAL|root|Unhandled exception:Traceback (most recent call last):
+  File "C:\LabPrograms\Python\HexSimAnalyser\HexSimAnalyser_measurement.py", line 422, in loadFile
+    raise(OSError('Invalid file type'))
+OSError: Invalid file type
+
+2021-06-17T18:55:42|CRITICAL|root|Unhandled exception:Traceback (most recent call last):
+  File "C:\Users\Admin\anaconda3\envs\scopefoundry\lib\site-packages\ScopeFoundry\logged_quantity.py", line 241, in update_value
+    self.hardware_set_func(self.val)
+  File "C:\LabPrograms\Python\HexSimAnalyser\HexSimAnalyser_measurement.py", line 313, in set_frame
+    self.imageRaw = self.imageRaw # frame update is done by the imageRaw setter
+  File "C:\LabPrograms\Python\HexSimAnalyser\HexSimAnalyser_measurement.py", line 176, in imageRaw
+    spectrum = self.calculate_spectrum(img_raw[:,frame_index,:,:]) # calculates the power spectrum of imageRaw for the first phase
+  File "C:\LabPrograms\Python\HexSimAnalyser\HexSimAnalyser_measurement.py", line 445, in calculate_spectrum
+    kr= self.h._kr
+AttributeError: 'SimProcessor' object has no attribute '_kr'
+
+2021-06-17T18:55:43|CRITICAL|root|Unhandled exception:Traceback (most recent call last):
+  File "C:\LabPrograms\Python\HexSimAnalyser\HexSimAnalyser_measurement.py", line 420, in loadFile
+    self.load_h5_file()
+  File "C:\LabPrograms\Python\HexSimAnalyser\HexSimAnalyser_measurement.py", line 227, in load_h5_file
+    available_datasets = self.open_PROCHIP_h5_file()
+  File "C:\LabPrograms\Python\HexSimAnalyser\HexSimAnalyser_measurement.py", line 266, in open_PROCHIP_h5_file
+    available_datasets = self.set_dataset(idx = 0)
+  File "C:\LabPrograms\Python\HexSimAnalyser\HexSimAnalyser_measurement.py", line 301, in set_dataset
+    self.imageRaw = stack
+  File "C:\LabPrograms\Python\HexSimAnalyser\HexSimAnalyser_measurement.py", line 176, in imageRaw
+    spectrum = self.calculate_spectrum(img_raw[:,frame_index,:,:]) # calculates the power spectrum of imageRaw for the first phase
+  File "C:\LabPrograms\Python\HexSimAnalyser\HexSimAnalyser_measurement.py", line 445, in calculate_spectrum
+    kr= self.h._kr
+AttributeError: 'SimProcessor' object has no attribute '_kr'
+

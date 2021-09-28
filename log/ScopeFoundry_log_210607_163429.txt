@@ -1,0 +1,47 @@
+2021-06-08T17:09:03|CRITICAL|root|Unhandled exception:Traceback (most recent call last):
+  File "C:\LabPrograms\Python\HexSimAnalyser\HexSimAnalyser_measurement.py", line 422, in loadFile
+    raise(OSError('Invalid file type'))
+OSError: Invalid file type
+
+2021-06-08T17:18:51|CRITICAL|root|Unhandled exception:Traceback (most recent call last):
+  File "C:\LabPrograms\Python\HexSimAnalyser\HexSimAnalyser_measurement.py", line 422, in loadFile
+    raise(OSError('Invalid file type'))
+OSError: Invalid file type
+
+2021-06-08T17:19:31|CRITICAL|root|Unhandled exception:Traceback (most recent call last):
+  File "C:\Users\Admin\anaconda3\envs\scopefoundry\lib\site-packages\ScopeFoundry\logged_quantity.py", line 241, in update_value
+    self.hardware_set_func(self.val)
+  File "C:\LabPrograms\Python\HexSimAnalyser\HexSimAnalyser_measurement.py", line 286, in set_dataset
+    index_list, names = get_datasets_index_by_name(self.filename, t_idx)
+  File "C:\LabPrograms\Python\HexSimAnalyser\get_h5_data.py", line 12, in get_datasets_index_by_name
+    f = h5py.File(fname,'r')
+  File "C:\Users\Admin\anaconda3\envs\scopefoundry\lib\site-packages\h5py\_hl\files.py", line 406, in __init__
+    fid = make_fid(name, mode, userblock_size,
+  File "C:\Users\Admin\anaconda3\envs\scopefoundry\lib\site-packages\h5py\_hl\files.py", line 173, in make_fid
+    fid = h5f.open(name, flags, fapl=fapl)
+  File "h5py\_objects.pyx", line 54, in h5py._objects.with_phil.wrapper
+  File "h5py\_objects.pyx", line 55, in h5py._objects.with_phil.wrapper
+  File "h5py\h5f.pyx", line 88, in h5py.h5f.open
+ValueError: Invalid file name (invalid file name)
+
+2021-06-08T17:19:35|CRITICAL|root|Unhandled exception:Traceback (most recent call last):
+  File "C:\Users\Admin\anaconda3\envs\scopefoundry\lib\site-packages\ScopeFoundry\logged_quantity.py", line 241, in update_value
+    self.hardware_set_func(self.val)
+  File "C:\LabPrograms\Python\HexSimAnalyser\HexSimAnalyser_measurement.py", line 286, in set_dataset
+    index_list, names = get_datasets_index_by_name(self.filename, t_idx)
+  File "C:\LabPrograms\Python\HexSimAnalyser\get_h5_data.py", line 12, in get_datasets_index_by_name
+    f = h5py.File(fname,'r')
+  File "C:\Users\Admin\anaconda3\envs\scopefoundry\lib\site-packages\h5py\_hl\files.py", line 406, in __init__
+    fid = make_fid(name, mode, userblock_size,
+  File "C:\Users\Admin\anaconda3\envs\scopefoundry\lib\site-packages\h5py\_hl\files.py", line 173, in make_fid
+    fid = h5f.open(name, flags, fapl=fapl)
+  File "h5py\_objects.pyx", line 54, in h5py._objects.with_phil.wrapper
+  File "h5py\_objects.pyx", line 55, in h5py._objects.with_phil.wrapper
+  File "h5py\h5f.pyx", line 88, in h5py.h5f.open
+ValueError: Invalid file name (invalid file name)
+
+2021-06-08T17:49:43|CRITICAL|root|Unhandled exception:Traceback (most recent call last):
+  File "C:\LabPrograms\Python\HexSimAnalyser\HexSimAnalyser_measurement.py", line 422, in loadFile
+    raise(OSError('Invalid file type'))
+OSError: Invalid file type
+

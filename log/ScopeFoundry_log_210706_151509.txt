@@ -1,0 +1,13 @@
+2021-07-06T15:15:52|CRITICAL|root|Unhandled exception:Traceback (most recent call last):
+  File "C:\Users\Admin\anaconda3\envs\scopefoundry\lib\site-packages\ScopeFoundry\base_app.py", line 787, in settings_load_dialog
+    self.settings_load_ini(fname)
+  File "C:\Users\Admin\anaconda3\envs\scopefoundry\lib\site-packages\ScopeFoundry\base_app.py", line 712, in settings_load_ini
+    config.read(fname)
+  File "C:\Users\Admin\anaconda3\envs\scopefoundry\lib\configparser.py", line 697, in read
+    self._read(fp, filename)
+  File "C:\Users\Admin\anaconda3\envs\scopefoundry\lib\configparser.py", line 1017, in _read
+    for lineno, line in enumerate(fp, start=1):
+  File "C:\Users\Admin\anaconda3\envs\scopefoundry\lib\encodings\cp1252.py", line 23, in decode
+    return codecs.charmap_decode(input,self.errors,decoding_table)[0]
+UnicodeDecodeError: 'charmap' codec can't decode byte 0x90 in position 1064: character maps to <undefined>
+

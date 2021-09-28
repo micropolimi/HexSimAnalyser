@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import pyqtgraph as pg
 import tifffile as tif
-from numpy.fft import fft2, fftshift
+from numpy.fft import fft2,fftshift, ifft2
 
 # from PyQt5.QtWidgets import QFileDialog, QTableWidgetItem
 from qtpy.QtWidgets import QFileDialog, QTableWidgetItem   
@@ -76,12 +76,14 @@ class HexSimAnalysis(Measurement):
                           hardware_set_func = self.setReconstructor)
         self.settings.New('beta', dtype=float, initial=0.950,  spinbox_decimals=3,description='0th width',
                           hardware_set_func = self.setReconstructor)
-        self.settings.New('w', dtype=float, initial=5.00, spinbox_decimals=2, description='wiener parameter',
+        self.settings.New('w', dtype=float, initial=0.5, spinbox_decimals=2, description='wiener parameter',
                           hardware_set_func = self.setReconstructor)
         self.settings.New('eta', dtype=float, initial=0.15, spinbox_decimals=2, 
                           description='must be smaller than the sources radius normalized on the pupil size',
                           hardware_set_func = self.setReconstructor)
         self.settings.New('find_carrier', dtype=bool, initial=True,                         
+                          hardware_set_func = self.setReconstructor)
+        self.settings.New('use_phases', dtype=bool, initial=True,                         
                           hardware_set_func = self.setReconstructor)
         self.settings.New('selectROI', dtype=bool, initial=False) 
         self.settings.New('roiX', dtype=int, initial=600)
@@ -107,6 +109,11 @@ class HexSimAnalysis(Measurement):
         self.imvFft.ui.roiBtn.hide()
         self.imvFft.ui.menuBtn.hide()
         
+        self.imvXcorr = pg.ImageView()
+        self.imvXcorr.ui.roiBtn.hide()
+        self.imvXcorr.ui.menuBtn.hide()
+        
+        
         self.imvSimFft = pg.ImageView()
         self.imvSimFft.ui.roiBtn.hide()
         self.imvSimFft.ui.menuBtn.hide()
@@ -115,11 +122,17 @@ class HexSimAnalysis(Measurement):
         self.imvWF.ui.roiBtn.hide()
         self.imvWF.ui.menuBtn.hide()
         #self.imvWF......add_listener(self.set_frame) #TODO add listener
+        
+        self.imvDem = pg.ImageView()
+        self.imvDem.ui.roiBtn.hide()
+        self.imvDem.ui.menuBtn.hide()
 
         self.ui.rawImageLayout.addWidget(self.imvRaw)
         self.ui.simImageLayout.addWidget(self.imvSIM)
         self.ui.wfImageLayout.addWidget(self.imvWF)
+        self.ui.demodulationLayout.addWidget(self.imvDem)
         self.ui.fftLayout.addWidget(self.imvFft)
+        self.ui.xcorrLayout.addWidget(self.imvXcorr)
         self.ui.simFftLayout.addWidget(self.imvSimFft)
 
         self.settings.dataset_index.connect_to_widget(self.ui.datasetSpinBox)
@@ -127,6 +140,7 @@ class HexSimAnalysis(Measurement):
         self.ui.loadFileButton.clicked.connect(self.loadFile)
         self.ui.resetButton.clicked.connect(self.reset_processor)
         self.ui.cutRoiButton.clicked.connect(self.cutRoi)
+        self.ui.stackdemodulationButton.clicked.connect(self.stack_demodulation)
 
         self.ui.calibrationSave.clicked.connect(self.saveMeasurements) 
         self.ui.calibrationLoad.clicked.connect(self.loadCalibrationResults)
@@ -162,13 +176,16 @@ class HexSimAnalysis(Measurement):
         frame_index = min(self.settings.frame_index.val, size_z-1)
         self._imageRaw = img_raw 
         self.imvRaw.setImage(img_raw[:,frame_index,:,:], autoRange=True, autoLevels=True, autoHistogramRange=True)
-        imageWF = self.imageWF = self.calculate_WF_image(img_raw) 
-        self.imvWF.setImage(imageWF, autoRange=True, autoLevels=True, autoHistogramRange=True) 
-        self.imvWF.setCurrentIndex(frame_index) 
+        if hasattr(self, 'imageWF'):
+            self.imvWF.setCurrentIndex(frame_index) 
+        if hasattr(self, 'imageDem'): 
+            self.imvDem.setCurrentIndex(frame_index)     
         self.settings.frame_index.change_min_max(vmin = 0, vmax = size_z-1)
         spectrum = self.calculate_spectrum(img_raw[:,frame_index,:,:]) # calculates the power spectrum of imageRaw for the first phase
-        self.imvFft.setImage(spectrum, autoRange=True, autoLevels=True, autoHistogramRange=True) 
-        
+        self.imvFft.setImage(spectrum, autoRange=True, autoLevels=True, autoHistogramRange=True)
+        xcorr = self.calculate_carrier(img_raw[:,frame_index,:,:]) # calculates the power spectrum of imageRaw for the first phase
+        self.imvXcorr.setImage(xcorr, autoRange=True, autoLevels=True, autoHistogramRange=True)
+
 
     @property
     def imageSIM(self):
@@ -180,6 +197,7 @@ class HexSimAnalysis(Measurement):
         self.imvSIM.setImage(img_sim, autoRange=True, autoLevels=True, autoHistogramRange=True)
         spectrum = self.calculate_spectrum(img_sim)
         self.imvSimFft.setImage(spectrum, autoRange=True, autoLevels=True, autoHistogramRange=True) 
+        
         
     def start_sim_processor(self):
         self.isCalibrated = False
@@ -226,15 +244,16 @@ class HexSimAnalysis(Measurement):
         
         self.settings['phases_number'] = sp 
         self.settings['dataset_index'] = 0
-        #self.settings['frame_index'] = sz//2
+        self.settings['frame_index'] = sz//2
         
-        self.show_text(f'\nCorrectly opened dataset {0}/{available_datasets} \
+        
+        self.show_text(f'\nCorrectly opened file: {filename}')
+              
+        self.show_text(f'\nCorrectly opened dataset {0}/{available_datasets-1} \
                              \nwith {sp} phases and {sz} images')
         # self.settings.frame_index.change_min_max(vmin = 0, vmax = sz-1)
         self.settings.dataset_index.change_min_max(vmin = 0, vmax= available_datasets-1)
-            
-        
-        
+
         # allow selection of the ROI clicking the mouse
         self.enableROIselection()
         #load measurement settings, if present in the h5 file
@@ -272,6 +291,7 @@ class HexSimAnalysis(Measurement):
         
         if 'FLIR_NI' in self.measurement_name:
             available_datasets = 1
+            frame_index = 0
         
         elif 'PROCHIP' in self.measurement_name:   
             
@@ -285,6 +305,7 @@ class HexSimAnalysis(Measurement):
             shape = stack.shape
             size_phases = shape[0]
             size_z = shape[1]
+            frame_index = size_z//2 # sets image to the central frame of the stack
             if size_phases != 3 and size_phases != 7: # ==7 is for the future in PROCHIP  measurements 
                 self.show_text(f'\nUnable to open dataset {idx}.\n')
                 raise(ValueError)
@@ -292,14 +313,20 @@ class HexSimAnalysis(Measurement):
                 self.show_text(f'\nCorrectly opened dataset {idx}/{(found//size_phases)-1} \
                              \nwith {size_phases} phases and {size_z} images')
             self.imageRaw = stack
-            self.settings['frame_index'] = size_z//2 # sets image to the central frame of the stack
             available_datasets = found//size_phases
+        
+        self.imageWF = self.calculate_WF_image(self.imageRaw) 
+        self.imvWF.setImage(self.imageWF, autoRange=True, autoLevels=True, autoHistogramRange=True)
+        self.settings['frame_index'] = frame_index 
+                
         return available_datasets
     
     
     def set_frame(self,idx):
         if hasattr(self, 'imageRaw'):
-            self.imageRaw = self.imageRaw # frame update is done by the imageRaw setter 
+            self.imageRaw = self.imageRaw # frame update is done by the imageRaw setter
+        if hasattr(self,'imageWF'):
+            self.imvWF.setCurrentIndex(idx) 
         
             
     def cutRoi(self):        
@@ -406,11 +433,10 @@ class HexSimAnalysis(Measurement):
         elif filename.endswith('.h5') or filename.endswith('.hdf5'):
             self.load_h5_file()
         else:
-            raise(OSError('Invalid file type'))
-
-        
+            raise(OSError('Invalid file type'))        
         self.setReconstructor()
         self.h._allocate_arrays()
+        
                 
     def calculate_WF_image(self, img):
         imageWF = np.mean(img, axis=0)
@@ -423,12 +449,85 @@ class HexSimAnalysis(Measurement):
         epsilon = 1e-6
         ps = np.log((np.abs(fftshift(fft2(img))))**2+epsilon) 
         return ps 
+    
+    def calculate_kr(self,N):
+        _dx = self.h.pixelsize / self.h.magnification  # Sampling in image plane
+        _res = self.h.wavelength / (2 * self.h.NA)
+        _oversampling = _res / _dx
+        self._dk = _dk = _oversampling / (N / 2)  # Sampling in frequency plane
+        _k = np.arange(-_dk * N / 2, _dk * N / 2, _dk, dtype=np.double)
+        _dx2 = _dx / 2
+        self._kr = np.sqrt(_k ** 2 + _k[:,np.newaxis] ** 2, dtype=np.single)
         
+    def calculate_carrier(self, img):
+        """
+        Calculates the crosscorrelation of the low and high pass filtered version of the raw image
+        """
+        N = len(img[0, :, :])
+        self.calculate_kr(N)
+        kr = self._kr 
+        M = np.exp(1j * 2 * np.pi / 3) ** ((np.arange(0, 2)[:, np.newaxis]) * np.arange(0, 3))
+
+        sum_prepared_comp = np.zeros((2, N, N), dtype=np.complex64)
+        
+        for k in range(0, 2):
+            for l in range(0, 3):
+                sum_prepared_comp[k, :, :] = sum_prepared_comp[k, :, :] + img[l, :, :] * M[k, l]
+        
+        
+        band0 = sum_prepared_comp[0, :, :]
+        band1 = sum_prepared_comp[1, :, :]
+        
+        otf_exclude_min_radius = self.h.eta/2 # Min Radius of the circular region around DC that is to be excluded from the cross-correlation calculation
+        maskhpf = fftshift(kr > otf_exclude_min_radius)
+        
+        band0_common = ifft2(fft2(band0)*maskhpf)
+        # band1_common = ifft2(fft2(band1)*maskhpf)
+        ix = band0_common * band1
+        
+        ixf = np.abs(fftshift(fft2(fftshift(ix))))
+        # pyc0, pxc0 = self.h._findPeak(ixf )
+        # self.kx = self._dk * (pxc0 - N / 2)
+        # self.ky = self._dk * (pyc0 - N / 2)
+        # self.N = N
+        # self.plot_carrier()
+        return ixf 
+    
     def reset_processor(self,*args):
         self.isCalibrated = False
         self.stop_sim_processor()
         self.start_sim_processor()
-            
+    
+    @add_timer    
+    def demodulation(self):
+        frame_index = self.settings['frame_index']
+        stack = np.squeeze(self.imageRaw[:,frame_index,:,:]) 
+        p,y,x = stack.shape
+        demodulated = np.zeros([y,x], dtype=np.complex64)
+        for p_idx in range(p):
+            imp_idx = np.squeeze(stack[p_idx,:,:])
+            demodulated += 2/p * imp_idx * np.exp(1j*2*np.pi*p_idx/p)
+        demodulated_abs = (np.abs(demodulated).astype('float'))    
+        #demodulated_angle = np.squeeze(np.angle(demodulated).astype('float'))
+        self.imageDem = demodulated_abs
+        self.imvDem.setImage(self.imageDem, autoRange=True, autoLevels=True, autoHistogramRange=True) 
+        
+    
+    @add_timer
+    def stack_demodulation(self):
+        hyperstack = self.imageRaw
+        p,z,y,x = hyperstack.shape
+        demodulated = np.zeros([z,y,x]).astype('complex64')
+        for frame_index in range(z): 
+            for p_idx in range(p):
+                demodulated[frame_index,:,:] += 2/p * hyperstack[p_idx,frame_index,:,:]*np.exp(-1j*2*np.pi*p_idx/p)
+        demodulated_abs = np.abs(demodulated).astype('float')   
+        #demodulated_angle = np.angle(demodulated).astype('float')
+        self.imageDem = demodulated_abs
+        self.imvDem.setImage(demodulated_abs, autoRange=True, autoLevels=True, autoHistogramRange=True)
+        self.set_frame(self.settings.frame_index.val)
+           
+           
     @add_timer
     def calibration(self):    
         self.setReconstructor()
@@ -447,7 +546,59 @@ class HexSimAnalysis(Measurement):
             self.wienerImv.ui.menuBtn.hide()
             self.ui.wienerLayout.addWidget(self.wienerImv)
         self.wienerImv.setImage(self.h.wienerfilter, autoRange=True, autoLevels=True, autoHistogramRange=True)
+        self.plot_carrier()
         self.showCalibrationTable() 
+        
+        
+    def plot_carrier(self):    
+        
+        assert self.isCalibrated
+        
+        kxs = self.h.kx
+        kys = self.h.ky
+        N = self.h.N
+        
+        from collections.abc import Iterable
+        if not isinstance(kxs, Iterable):
+            kxs = [kxs]
+            kys = [kys]
+        
+        
+        if hasattr(self, 'roiFft'):
+
+            for idx, (kx,ky) in enumerate(zip(kxs,kys)):
+                    
+                pxc0 = -kx / self._dk + N/2
+                pyc0 = -ky / self._dk + N/2
+                radius = 6
+                self.roiFft[idx].setPos(pos = [pyc0-radius//2, pxc0-radius//2] )
+                self.roiXcorr[idx].setPos(pos = [pyc0-radius//2, pxc0-radius//2] )
+                self.roiSim[idx].setPos(pos = [N//2+pyc0-radius//2, N//2+pxc0-radius//2] )
+                self.roiWiener[idx].setPos(pos = [N//2+pyc0-radius//2, N//2+pxc0-radius//2] )
+        
+        else:
+           
+            self.roiFft = []
+            self.roiXcorr = []
+            self.roiSim = []
+            self.roiWiener = []
+            
+            for idx, (kx,ky) in enumerate(zip(kxs,kys)):
+                
+                pxc0 = -kx / self._dk + N/2
+                pyc0 = -ky / self._dk + N/2
+                radius = 6
+                
+                self.roiFft.append(pg.CircleROI([pyc0-radius//2, pxc0-radius//2], [radius,radius], movable=False, resizable= False, pen=pg.mkPen('r',width=2)))
+                self.roiXcorr.append(pg.CircleROI([pyc0-radius//2, pxc0-radius//2], [radius,radius], movable=False, resizable= False, pen=pg.mkPen('r',width=2)))
+                self.roiSim.append(pg.CircleROI([2*pyc0-radius//2, 2*pxc0-radius//2], [radius,radius], movable=False, resizable= False, pen=pg.mkPen('r',width=2)))
+                self.roiWiener.append(pg.CircleROI([2*pyc0-radius//2, 2*pxc0-radius//2], [radius,radius], movable=False, resizable= False, pen=pg.mkPen('r',width=2)))
+                    
+                self.imvFft.addItem(self.roiFft[idx])
+                self.imvXcorr.addItem(self.roiXcorr[idx])
+                self.imvSimFft.addItem(self.roiSim[idx])
+                self.wienerImv.addItem(self.roiWiener[idx])
+      
              
     @add_timer  
     def standard_reconstruction(self):
@@ -506,6 +657,7 @@ class HexSimAnalysis(Measurement):
         
     def setReconstructor(self,*args):
         self.isFindCarrier = self.settings['find_carrier']
+        self.h.usePhases = self.settings['use_phases']
         self.h.debug = self.settings['debug']
         self.h.cleanup = self.settings['cleanup']
         self.h.axial = self.settings['axial']
@@ -522,6 +674,8 @@ class HexSimAnalysis(Measurement):
         if not self.isFindCarrier:
             self.h.kx = self.kx_input
             self.h.ky = self.ky_input
+        if hasattr(self, 'imageRaw'):
+            self.imageRaw = self.imageRaw # runs the imageRaw setter and updates shown images
             
 
     def saveMeasurements(self):
@@ -530,11 +684,18 @@ class HexSimAnalysis(Measurement):
         timestamp = timestamp.strftime("%Y%m%d%H%M")
         pathname = self.filepath + '/reprocess'
         Path(pathname).mkdir(parents=True,exist_ok=True)
-        simimagename = pathname + '/' + self.filetitle + timestamp + f'_reprocessed' + '.tif'
-        wfimagename = pathname + '/' + self.filetitle + timestamp + f'_widefield' + '.tif'
-        txtname =      pathname + '/' + self.filetitle + timestamp + f'_reprocessed' + '.txt'
-        tif.imwrite(simimagename, np.single(self.imageSIM))
+        simimagename = pathname + '/' + self.filetitle + timestamp + '_reprocessed' + '.tif'
+        wfimagename = pathname + '/' + self.filetitle + timestamp + '_widefield' + '.tif'
+        demimagename = pathname + '/' + self.filetitle + timestamp + '_demodulated' + '.tif'
+        txtname =      pathname + '/' + self.filetitle + timestamp + '_reprocessed' + '.txt'
+        
         tif.imwrite(wfimagename,np.uint16(self.imageWF))
+        
+        if hasattr(self, 'imageSIM'):
+            tif.imwrite(simimagename, np.single(self.imageSIM))
+        
+        if hasattr(self, 'imageDem'):
+            tif.imwrite(demimagename,np.single(self.imageDem))
 
         savedictionary = {
             #"exposure time (s)":self.exposuretime,
@@ -619,7 +780,7 @@ class HexSimAnalysis(Measurement):
         frame_index = self.settings['frame_index']
         phase, _ = self.h.find_phase(self.h.kx,self.h.ky,self.imageRaw[:,frame_index,:,:])
         expected_phase = np.arange(0,2*np.pi ,2*np.pi / 3)
-        phaseshift= np.unwrap(phase - expected_phase) + expected_phase - phase[0]
+        phaseshift= np.unwrap(phase - expected_phase) - phase[0]
         error = phaseshift-expected_phase
         self.phasesPlot.clear()
         self.phasesPlot.plot(phaseshift, symbol = '+')
