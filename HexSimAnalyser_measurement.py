@@ -121,8 +121,7 @@ class HexSimAnalysis(Measurement):
         self.imvWF = pg.ImageView()
         self.imvWF.ui.roiBtn.hide()
         self.imvWF.ui.menuBtn.hide()
-        #self.imvWF......add_listener(self.set_frame) #TODO add listener
-        
+       
         self.imvDem = pg.ImageView()
         self.imvDem.ui.roiBtn.hide()
         self.imvDem.ui.menuBtn.hide()
@@ -508,21 +507,24 @@ class HexSimAnalysis(Measurement):
             imp_idx = np.squeeze(stack[p_idx,:,:])
             demodulated += 2/p * imp_idx * np.exp(1j*2*np.pi*p_idx/p)
         demodulated_abs = (np.abs(demodulated).astype('float'))    
-        #demodulated_angle = np.squeeze(np.angle(demodulated).astype('float'))
+        from skimage.restoration import unwrap_phase
+        # demodulated_phase = unwrap_phase(np.angle(demodulated).astype('float'))
         self.imageDem = demodulated_abs
         self.imvDem.setImage(self.imageDem, autoRange=True, autoLevels=True, autoHistogramRange=True) 
         
     
     @add_timer
-    def stack_demodulation(self):
+    def stack_demodulation(self): 
         hyperstack = self.imageRaw
         p,z,y,x = hyperstack.shape
         demodulated = np.zeros([z,y,x]).astype('complex64')
         for frame_index in range(z): 
             for p_idx in range(p):
-                demodulated[frame_index,:,:] += 2/p * hyperstack[p_idx,frame_index,:,:]*np.exp(-1j*2*np.pi*p_idx/p)
-        demodulated_abs = np.abs(demodulated).astype('float')   
-        #demodulated_angle = np.angle(demodulated).astype('float')
+                demodulated[frame_index,:,:] += 2/p * hyperstack[p_idx,frame_index,:,:]*np.exp(1j*2*np.pi*p_idx/p)
+        demodulated_abs = np.abs(demodulated).astype('float') 
+        # from skimage.restoration import unwrap_phase
+        # demodulated_phase = unwrap_phase(np.angle(demodulated).astype('float'))
+        
         self.imageDem = demodulated_abs
         self.imvDem.setImage(demodulated_abs, autoRange=True, autoLevels=True, autoHistogramRange=True)
         self.set_frame(self.settings.frame_index.val)
@@ -678,24 +680,25 @@ class HexSimAnalysis(Measurement):
             self.imageRaw = self.imageRaw # runs the imageRaw setter and updates shown images
             
 
-    def saveMeasurements(self):
+    def saveMeasurements(self): 
         t0 = time.time()
         timestamp = datetime.fromtimestamp(t0)
         timestamp = timestamp.strftime("%Y%m%d%H%M")
         pathname = self.filepath + '/reprocess'
         Path(pathname).mkdir(parents=True,exist_ok=True)
+        originalimagename = pathname + '/' + self.filetitle + timestamp + '_original' + '.tif'
         simimagename = pathname + '/' + self.filetitle + timestamp + '_reprocessed' + '.tif'
         wfimagename = pathname + '/' + self.filetitle + timestamp + '_widefield' + '.tif'
         demimagename = pathname + '/' + self.filetitle + timestamp + '_demodulated' + '.tif'
         txtname =      pathname + '/' + self.filetitle + timestamp + '_reprocessed' + '.txt'
         
-        tif.imwrite(wfimagename,np.uint16(self.imageWF))
-        
+        tif.imwrite(wfimagename, np.uint16(self.imageWF))
+        tif.imwrite(originalimagename,  np.uint16(self.imageRaw))
         if hasattr(self, 'imageSIM'):
             tif.imwrite(simimagename, np.single(self.imageSIM))
         
         if hasattr(self, 'imageDem'):
-            tif.imwrite(demimagename,np.single(self.imageDem))
+            tif.imwrite(demimagename, np.uint16(self.imageDem))
 
         savedictionary = {
             #"exposure time (s)":self.exposuretime,
@@ -809,7 +812,7 @@ class HexSimAnalysis(Measurement):
         table = self.ui.currentTable
         table.setColumnCount(2)
         table.setRowCount(6)
-        table.setItem(0, 0, table_item('[kx_in]')) #TODO check if this is necessary
+        table.setItem(0, 0, table_item('[kx_in]')) 
         table.setItem(0, 1, table_item(self.kx_input[0]))
         
         table.setItem(1, 0, table_item('[ky_in]'))              
@@ -840,11 +843,11 @@ class HexSimAnalysis(Measurement):
         table.setRowCount(6)
         
         table.setItem(0, 0, table_item('[kx_in]'))
-        table.setItem(0, 1, table_item(self.kx_input[0])) #TODO check if this is necessary
+        table.setItem(0, 1, table_item(self.kx_input[0])) 
         table.setItem(0, 2, table_item(self.kx_input[1]))
         table.setItem(0, 3, table_item(self.kx_input[2]))
         
-        table.setItem(1, 0, table_item('[ky_in]'))    #TODO check if this is necessary          
+        table.setItem(1, 0, table_item('[ky_in]'))             
         table.setItem(1, 1, table_item(self.ky_input[0]))
         table.setItem(1, 2, table_item(self.ky_input[1]))
         table.setItem(1, 3, table_item(self.ky_input[2]))

@@ -1,0 +1,17 @@
+2021-09-28T16:58:27|CRITICAL|root|Unhandled exception:Traceback (most recent call last):
+  File "C:\LabPrograms\Python\HexSimAnalyser\HexSimAnalyser_measurement.py", line 31, in inner
+    result = function(cls)
+  File "C:\LabPrograms\Python\HexSimAnalyser\HexSimAnalyser_measurement.py", line 549, in calibration
+    self.plot_carrier()
+  File "C:\LabPrograms\Python\HexSimAnalyser\HexSimAnalyser_measurement.py", line 591, in plot_carrier
+    self.roiFft.append(pg.CircleROI([pyc0-radius//2, pxc0-radius//2], [radius,radius], movable=False, resizable= False, pen=pg.mkPen('r',width=2)))
+  File "C:\Users\Admin\anaconda3\envs\scopefoundry\lib\site-packages\pyqtgraph\graphicsItems\ROI.py", line 1839, in __init__
+    EllipseROI.__init__(self, pos, size, **args)
+  File "C:\Users\Admin\anaconda3\envs\scopefoundry\lib\site-packages\pyqtgraph\graphicsItems\ROI.py", line 1750, in __init__
+    ROI.__init__(self, pos, size, **args)
+  File "C:\Users\Admin\anaconda3\envs\scopefoundry\lib\site-packages\pyqtgraph\graphicsItems\ROI.py", line 137, in __init__
+    pos = Point(pos)
+  File "C:\Users\Admin\anaconda3\envs\scopefoundry\lib\site-packages\pyqtgraph\Point.py", line 30, in __init__
+    QtCore.QPointF.__init__(self, float(args[0][0]), float(args[0][1]))
+TypeError: only size-1 arrays can be converted to Python scalars
+
